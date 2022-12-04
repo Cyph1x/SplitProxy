@@ -5,7 +5,7 @@ namespace proxy_server
 {
     internal class Program
     {
-        
+
         static int threadAmnt = 0;
 
         static void tryClose(Socket sock)
@@ -39,7 +39,7 @@ namespace proxy_server
                 {
                     sock2.Send(buffer, 0, read, SocketFlags.None);
                 }
-                
+
             }
             catch (SocketException) { }
             catch (ObjectDisposedException) { }
@@ -48,13 +48,13 @@ namespace proxy_server
             //Console.WriteLine("Thread ended " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             threadAmnt--;
             Console.WriteLine("Total threads:" + threadAmnt);
-            
+
         }
 
 
         static void handleConnection(Socket conn)
         {
-            
+
             try
             {
                 byte[] buffer = new byte[1024];
@@ -84,7 +84,7 @@ namespace proxy_server
                     string[] hostPort = parts[1].Split(':');
                     string host = hostPort[0];
                     int port = int.Parse(hostPort[1]);
-                    Console.WriteLine(host+":"+port.ToString());
+                    Console.WriteLine(host + ":" + port.ToString());
                     // now we need to connect to the remote host
                     Socket remote = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     remote.Connect(host, port);

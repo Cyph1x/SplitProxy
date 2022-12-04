@@ -1,9 +1,8 @@
-﻿using System;
+﻿using ConnectionUtils;
+using System;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using ConnectionUtils;
 
 
 
@@ -137,8 +136,10 @@ public class Client
                     ewh.WaitOne();
                 }
                 ewh.Reset();
-                if (!proxySock.sock.Connected) { 
-                    return; }
+                if (!proxySock.sock.Connected)
+                {
+                    return;
+                }
 
                 //Console.WriteLine("sent to client: " + BitConverter.ToString(data).Replace("-", ""));
 
@@ -151,7 +152,7 @@ public class Client
         }
         catch (SocketException) { }
         catch (System.ObjectDisposedException) { }
-        
+
     }
     public void setTarget(Socket sock)
     {
