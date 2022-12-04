@@ -40,7 +40,7 @@ namespace connection_split_client
             if (Reason == 1)
             {
                 Console.WriteLine("Config File is invalid");
-                Console.Write("Do you want to create a new config file? (y/n) ");
+                Console.WriteLine("Do you want to create a new config file? (y/n)");
                 string answer = Console.ReadLine();
                 if (answer.ToLower() == "y")
                 {
