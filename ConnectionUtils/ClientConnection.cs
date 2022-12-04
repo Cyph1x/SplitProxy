@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 namespace ConnectionUtils
@@ -27,7 +23,7 @@ namespace ConnectionUtils
         }
         public ClientConnection(int id, int amnt)
         {
-            
+
             connectionId = id;
             connections = new SockConnection[amnt];
             tempBuffer = new byte[1024];
@@ -94,7 +90,8 @@ namespace ConnectionUtils
                     readPacketId++;
                     ewh.Set();
                 }
-            }catch (SocketException)
+            }
+            catch (SocketException)
             {
                 //the socket has closed
                 // we must now close the whole connection
@@ -111,7 +108,7 @@ namespace ConnectionUtils
         }
         public void write(byte[] data)
         {
-            
+
             byte[] packet;
             // sort the connections array by the data amount property
             Array.Sort(connections,
@@ -152,7 +149,7 @@ namespace ConnectionUtils
         {
             // get the amount of data from the buffer
             byte[] data = new byte[length];
-            while (tempBufferReadHead+ length > tempBufferWriteHead)
+            while (tempBufferReadHead + length > tempBufferWriteHead)
             {
                 Thread.Sleep(1);
             }

@@ -1,20 +1,20 @@
-﻿using System;
+﻿using ConnectionUtils;
+using System;
 using System.Net;
 using System.Net.Sockets;
-using ConnectionUtils;
 public class Server
 {
     ClientConnection[] clients = new ClientConnection[100];
     byte clientId = 0;
     Socket serverSock = null;
-    
+
     public void start(int port)
     {
         serverSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         serverSock.Bind(new IPEndPoint(IPAddress.Any, port));
         serverSock.Listen(255);
-        
+
     }
     public ClientConnection accept()
     {
@@ -40,7 +40,7 @@ public class Server
                 // get the connection id
                 int connectionId = BitConverter.ToUInt16(command, 0);
                 int proxyNum = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
-                clients[connectionId].connections[proxyNum] = new SockConnection(clientSock,proxyNum);
+                clients[connectionId].connections[proxyNum] = new SockConnection(clientSock, proxyNum);
                 clients[connectionId].startReader(proxyNum);
                 // check if all client connections are ready
                 clients[connectionId].connectionAmount++;
@@ -50,9 +50,9 @@ public class Server
                     return clients[connectionId];
                 }
             }
-            
+
         }
     }
-    
+
 }
 
