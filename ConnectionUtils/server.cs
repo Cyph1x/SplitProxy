@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 public class Server
 {
+    static int buffSize = 65536;
     ClientConnection[] clients = new ClientConnection[65535];
     byte clientId = 0;
     Socket serverSock = null;
@@ -23,6 +24,9 @@ public class Server
             Socket clientSock = serverSock.Accept();
             clientSock.ReceiveTimeout = 300000;
             clientSock.SendTimeout = 300000;
+            clientSock.ReceiveBufferSize = buffSize;
+            clientSock.SendBufferSize = buffSize;
+            
             try
             {
                 byte[] command = Utils.readExact(clientSock, 2);

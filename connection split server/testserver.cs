@@ -7,6 +7,7 @@ namespace connection_split_server
 {
     internal class testserver
     {
+        static int buffSize = 65536;
         static Boolean compareByteArray(byte[] arr1, byte[] arr2)
         {
             // first check that both arrays are the same length
@@ -79,14 +80,21 @@ namespace connection_split_server
                 }
                 Console.WriteLine(dest);
                 Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-                //PUT TRY CATCH AROUND THIS!!!!!
                 Console.WriteLine(dest + ":" + port.ToString());
-                sock.Connect(dest, port);
+                try
+                {
+                    sock.Connect(dest, port);
+                }
+                catch { 
+                    client.close();
+                    return;
+                }
+                sock.ReceiveBufferSize = buffSize;
+                sock.SendBufferSize = buffSize;
                 client.setTarget(sock);
                 client.write(new byte[] { 0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
                 // pipe all the data from conn to the client object
-                byte[] data = new byte[65536];
+                byte[] data = new byte[(buffSize-1)];
                 int len;
                 try
                 {

@@ -8,6 +8,7 @@ namespace connection_split_client
 {
     internal class testclient
     {
+        static int buffSize = 65536;
         static string[] proxies;
         static string target;
         static void hande(Socket conn)
@@ -19,7 +20,7 @@ namespace connection_split_client
                 client.connect(proxies);
                 client.setTarget(conn);
                 // pipe all the data from conn to the client object
-                byte[] data = new byte[65536];
+                byte[] data = new byte[(buffSize - 1)];
                 int len;
                 while (true)
                 {
@@ -68,6 +69,8 @@ namespace connection_split_client
             file.WriteLine("127.0.0.1:8080,127.0.0.1:8080,127.0.0.1:8080,127.0.0.1:8080");
             file.WriteLine("#Target");
             file.WriteLine("127.0.0.1:11111");
+            file.WriteLine("#Connect to target?");
+            file.WriteLine("1");
             file.Close();
             file.Dispose();
             if (Reason == 0)
@@ -109,10 +112,13 @@ namespace connection_split_client
                 lines = File.ReadAllLines("config.txt");
 
                 // check if the config file is valid
+                if (!(lines.Length > 9)) { createConfig(1); }
                 if (lines[4] != "#Proxies") { createConfig(1); }
                 if (lines[6] != "#Target") { createConfig(1); }
+                if (lines[8] != "#Connect to target?") { createConfig(1); }
                 if (!(lines[5].Length > 8)) { createConfig(1); }
                 if (!(lines[7].Length > 8)) { createConfig(1); }
+                if (!(lines[9].Length == 1)) { createConfig(1); }
                 if (!checkIfValidIp(lines[7])) { createConfig(1); }
                 String[] ips = lines[5].Split(',');
                 foreach (String ip in ips)
@@ -122,8 +128,13 @@ namespace connection_split_client
                 // config file is valid
                 // load the proxies
                 lines = File.ReadAllLines("config.txt");
+                if (lines[9] == "1")
+                {
+                    lines[5] += ",target";
+                }
                 proxies = lines[5].Split(',');
                 target = lines[7];
+                
 
             }
         }

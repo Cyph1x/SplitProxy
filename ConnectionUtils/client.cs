@@ -9,12 +9,26 @@ using System.Threading;
 
 public class Client
 {
+    static int buffSize = 65536;
     public Socket HttpsProxyConnect(string host, int port, string proxyHost, int proxyPort)
     {
         Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         //sock.ReceiveTimeout = 15000;
         //sock.SendTimeout = 15000;
-        sock.Connect(proxyHost, proxyPort);
+        if (proxyHost != "target")
+        {
+            sock.Connect(proxyHost, proxyPort);
+            sock.SendBufferSize = buffSize;
+            sock.ReceiveBufferSize = buffSize;
+        }
+        else
+        {
+            sock.Connect(host, port);
+            sock.SendBufferSize = buffSize;
+            sock.ReceiveBufferSize = buffSize;
+            return sock;
+        }
+        
         string request = "CONNECT " + host + ":" + port + " HTTP/1.1\r\n\r\n";
         sock.Send(System.Text.Encoding.ASCII.GetBytes(request));
         byte[] buffer = new byte[1024];
@@ -64,8 +78,18 @@ public class Client
     {
         try
         {
-            String host = proxyList[0].Split(':')[0];
-            int port = int.Parse(proxyList[0].Split(':')[1]);
+            String host;
+            int port = 0;
+            if (proxyList[0] != "target")
+            {
+                host = proxyList[0].Split(':')[0];
+                port = int.Parse(proxyList[0].Split(':')[1]);
+            }
+            else
+            {
+                host = "target";
+            }
+            
             connections = new SockConnection[proxyList.Length];
             Socket sock = HttpsProxyConnect(targetHost, targetPort, host, port);
             // send the command "id" and the proxy amount
@@ -83,8 +107,16 @@ public class Client
 
             for (int i = 0; i < proxyList.Length; i++)
             {
-                host = proxyList[i].Split(':')[0];
-                port = int.Parse(proxyList[i].Split(':')[1]);
+                if (proxyList[i] != "target")
+                {
+                    host = proxyList[i].Split(':')[0];
+                    port = int.Parse(proxyList[i].Split(':')[1]);
+                }
+                else
+                {
+                    host = "target";
+                    port = 0;
+                }
                 Console.WriteLine("creating socket with id" + i.ToString());
                 sock = HttpsProxyConnect(targetHost, targetPort, host, port);
                 sock.ReceiveTimeout = 300000;
@@ -156,6 +188,8 @@ public class Client
     }
     public void setTarget(Socket sock)
     {
+        sock.SendBufferSize = buffSize;
+        sock.ReceiveBufferSize = buffSize;
         targetSock = sock;
     }
     public Socket getTarget()
@@ -170,23 +204,23 @@ public class Client
 delegate (SockConnection x, SockConnection y) { return x.dataAmount.CompareTo(y.dataAmount); });
 
 
-        // if the length of the data is greater than 65535
+        // if the length of the data is greater than the buffersize
         // then split the data into multiple packets
         // otherwise send the data in one packet
 
         //Console.WriteLine("received from client: " + BitConverter.ToString(data).Replace("-", ""));
 
-        if (data.Length > 65535)
+        if (data.Length > (buffSize-5))
         {
-            byte[] packetLength = BitConverter.GetBytes((UInt16)65535);
+            byte[] packetLength = BitConverter.GetBytes((UInt16)(buffSize - 5));
             byte[] packetId = BitConverter.GetBytes(sendPacketId);
-            packet = new byte[65539];
+            packet = new byte[(buffSize-1)];
             Array.Copy(packetLength, 0, packet, 0, 2);
             Array.Copy(packetId, 0, packet, 2, 2);
-            Array.Copy(data, 0, packet, 4, 65535);
+            Array.Copy(data, 0, packet, 4, (buffSize - 5));
             connections[0].send(packet);
             sendPacketId++;
-            write(data.Skip(65535).ToArray());
+            write(data.Skip((buffSize - 5)).ToArray());
 
             //Console.WriteLine("sent to server: " + BitConverter.ToString(data).Replace("-", ""));
         }

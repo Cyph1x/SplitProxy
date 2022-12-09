@@ -4,8 +4,10 @@ using System.Net.Sockets;
 using System.Threading;
 namespace ConnectionUtils
 {
+    
     public class ClientConnection
     {
+        static int buffSize = 65536;
         int connectionId;
         Socket targetSock = null;
         public SockConnection[] connections;
@@ -117,20 +119,20 @@ namespace ConnectionUtils
     delegate (SockConnection x, SockConnection y) { return x.dataAmount.CompareTo(y.dataAmount); });
 
 
-            // if the length of the data is greater than 65535
+            // if the length of the data is greater than the bufferSize
             // then split the data into multiple packets
             // otherwise send the data in one packet
-            if (data.Length > 65535)
+            if (data.Length > (buffSize - 5))
             {
-                byte[] packetLength = BitConverter.GetBytes((UInt16)65535);
+                byte[] packetLength = BitConverter.GetBytes((UInt16)(buffSize - 5));
                 byte[] packetId = BitConverter.GetBytes(sendPacketId);
-                packet = new byte[65539];
+                packet = new byte[(buffSize - 1)];
                 Array.Copy(packetLength, 0, packet, 0, 2);
                 Array.Copy(packetId, 0, packet, 2, 2);
-                Array.Copy(data, 0, packet, 4, 65535);
+                Array.Copy(data, 0, packet, 4, (buffSize - 5));
                 connections[0].send(packet);
                 sendPacketId++;
-                write(data.Skip(65535).ToArray());
+                write(data.Skip((buffSize - 5)).ToArray());
             }
             else
             {
