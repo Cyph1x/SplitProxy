@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 public class Server
 {
-    ClientConnection[] clients = new ClientConnection[100];
+    ClientConnection[] clients = new ClientConnection[65535];
     byte clientId = 0;
     Socket serverSock = null;
 
@@ -23,33 +23,36 @@ public class Server
             Socket clientSock = serverSock.Accept();
             clientSock.ReceiveTimeout = 300000;
             clientSock.SendTimeout = 300000;
-            byte[] command = Utils.readExact(clientSock, 2);
-            // if the command equals id then we need to send the client an id
-            if (command[0] == 'i' && command[1] == 'd')
+            try
             {
-                int proxyAmount = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
-                clients[clientId] = new ClientConnection(clientId, proxyAmount);
-                clientSock.Send(BitConverter.GetBytes((UInt16)clientId));
-                clientId++;
-
-
-            }
-            else
-            {
-                // the client is requesting a connection
-                // get the connection id
-                int connectionId = BitConverter.ToUInt16(command, 0);
-                int proxyNum = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
-                clients[connectionId].connections[proxyNum] = new SockConnection(clientSock, proxyNum);
-                clients[connectionId].startReader(proxyNum);
-                // check if all client connections are ready
-                clients[connectionId].connectionAmount++;
-                if (clients[connectionId].connectionAmount == clients[connectionId].connections.Length)
+                byte[] command = Utils.readExact(clientSock, 2);
+                // if the command equals id then we need to send the client an id
+                if (command[0] == 'i' && command[1] == 'd')
                 {
-                    // all connections are ready
-                    return clients[connectionId];
+                    int proxyAmount = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
+                    clients[clientId] = new ClientConnection(clientId, proxyAmount);
+                    clientSock.Send(BitConverter.GetBytes((UInt16)clientId));
+                    clientId++;
+
+
                 }
-            }
+                else
+                {
+                    // the client is requesting a connection
+                    // get the connection id
+                    int connectionId = BitConverter.ToUInt16(command, 0);
+                    int proxyNum = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
+                    clients[connectionId].connections[proxyNum] = new SockConnection(clientSock, proxyNum);
+                    clients[connectionId].startReader(proxyNum);
+                    // check if all client connections are ready
+                    clients[connectionId].connectionAmount++;
+                    if (clients[connectionId].connectionAmount == clients[connectionId].connections.Length)
+                    {
+                        // all connections are ready
+                        return clients[connectionId];
+                    }
+                }
+            }catch (SocketException) { clientSock.Close(); }
 
         }
     }

@@ -97,6 +97,8 @@ namespace ConnectionUtils
                 // we must now close the whole connection
                 close();
             }
+            catch (System.ObjectDisposedException)
+            { close(); }
         }
         public void setTarget(Socket sock)
         {
@@ -162,7 +164,10 @@ namespace ConnectionUtils
             Console.WriteLine("closing connection");
             foreach (SockConnection connection in connections)
             {
-                connection.sock.Close();
+                if (connection != null)
+                {
+                    connection.sock.Close();
+                }
             }
         }
     }

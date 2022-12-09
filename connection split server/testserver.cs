@@ -40,60 +40,68 @@ namespace connection_split_server
                 return;
             }
             // tell the client that no auth is required
-            client.write(new byte[] { 0x05, 0x00 });
-            byte[] command = client.readTempBuffer(4);
-            if (command[1] != 1)
-            {
-                //close
-                return;
-            }
-            int connectionType = command[3];
-            String dest = "";
-            int port;
-            if (connectionType == 1)
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    dest += client.readTempBuffer(1).ToString();
-                    if (i != 3)
-                    {
-                        dest += ".";
-                    }
-
-                }
-                port = BitConverter.ToUInt16(client.readTempBuffer(2).Reverse().ToArray(), 0);
-            }
-            else if (connectionType == 3)
-            {
-                int domainLength = client.readTempBuffer(1)[0];
-                dest += System.Text.Encoding.Default.GetString(client.readTempBuffer(domainLength));
-                port = BitConverter.ToUInt16(client.readTempBuffer(2).Reverse().ToArray(), 0);
-            }
-            else
-            {
-                client.write(new byte[] { 0x05, 0x08, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
-                // close
-                return;
-            }
-            Console.WriteLine(dest);
-            Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-            //PUT TRY CATCH AROUND THIS!!!!!
-            Console.WriteLine(dest + ":" + port.ToString());
-            sock.Connect(dest, port);
-            client.setTarget(sock);
-            client.write(new byte[] { 0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
-            // pipe all the data from conn to the client object
-            byte[] data = new byte[65536];
-            int len;
             try
-            {
-                while (true)
+            { 
+                client.write(new byte[] { 0x05, 0x00 });
+                byte[] command = client.readTempBuffer(4);
+                if (command[1] != 1)
                 {
-                    len = sock.Receive(data);
-                    if (len == 0)
-                        break;
-                    client.write(data.Take(len).ToArray());
+                    //close
+                    return;
+                }
+                int connectionType = command[3];
+                String dest = "";
+                int port;
+                if (connectionType == 1)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        dest += client.readTempBuffer(1)[0].ToString();
+                        if (i != 3)
+                        {
+                            dest += ".";
+                        }
+
+                    }
+                    port = BitConverter.ToUInt16(client.readTempBuffer(2).Reverse().ToArray(), 0);
+                }
+                else if (connectionType == 3)
+                {
+                    int domainLength = client.readTempBuffer(1)[0];
+                    dest += System.Text.Encoding.Default.GetString(client.readTempBuffer(domainLength));
+                    port = BitConverter.ToUInt16(client.readTempBuffer(2).Reverse().ToArray(), 0);
+                }
+                else
+                {
+                    client.write(new byte[] { 0x05, 0x08, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+                    // close
+                    return;
+                }
+                Console.WriteLine(dest);
+                Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+                //PUT TRY CATCH AROUND THIS!!!!!
+                Console.WriteLine(dest + ":" + port.ToString());
+                sock.Connect(dest, port);
+                client.setTarget(sock);
+                client.write(new byte[] { 0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+                // pipe all the data from conn to the client object
+                byte[] data = new byte[65536];
+                int len;
+                try
+                {
+                    while (true)
+                    {
+                        len = sock.Receive(data);
+                        if (len == 0)
+                            break;
+                        client.write(data.Take(len).ToArray());
+                    }
+                }
+                catch (SocketException)
+                {
+                    client.close();
+                    sock.Close();
                 }
             }
             catch (System.ObjectDisposedException) { }// connection closed
