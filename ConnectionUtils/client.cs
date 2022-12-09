@@ -67,7 +67,6 @@ public class Client
     int targetPort;
     UInt16 readPacketId = 0;
     UInt16 sendPacketId = 0;
-    private static EventWaitHandle ewh = new EventWaitHandle(false, EventResetMode.ManualReset);
 
     public Client(String target)
     {
@@ -151,41 +150,43 @@ public class Client
                 // first 2 bytes of info are the packet length
                 // next 2 bytes are the packet id
 
-                //Console.WriteLine("thread id: " + Thread.CurrentThread.ManagedThreadId + " Reading packet from socket " + proxySock.id);
 
                 info = Utils.readExact(proxySock, 4);
 
-                //Console.WriteLine("thread id: " + Thread.CurrentThread.ManagedThreadId + " received info: " + BitConverter.ToString(info) + " from socket " + proxySock.id);
 
                 packetLength = BitConverter.ToUInt16(info, 0);
                 packetId = BitConverter.ToUInt16(info, 2);
                 data = Utils.readExact(proxySock, packetLength);
 
-                //Console.WriteLine("received from server: "+BitConverter.ToString(data).Replace("-", ""));
 
-                while (readPacketId != packetId && proxySock.sock.Connected)
+                // wait for the readPacketId to be updated
+                Monitor.Enter(this);
+                try
                 {
-                    ewh.WaitOne();
+                    while (readPacketId != packetId && proxySock.sock.Connected)
+                    {
+                        Monitor.Wait(this);
+                    }
+                    if (!proxySock.sock.Connected)
+                    {
+                        return;
+                    }
+                    targetSock.Send(data);
+                    Monitor.PulseAll(this);
                 }
-                ewh.Reset();
-                if (!proxySock.sock.Connected)
+                finally
                 {
-                    return;
+                    readPacketId++;
+                    Monitor.Exit(this);
                 }
-
-                //Console.WriteLine("sent to client: " + BitConverter.ToString(data).Replace("-", ""));
-
-                // we have the data from the packet
-                // send the data to the target socket
-                targetSock.Send(data);
-                readPacketId++;
-                ewh.Set();
+                
             }
         }
         catch (SocketException) { }
         catch (System.ObjectDisposedException) { }
 
     }
+
     public void setTarget(Socket sock)
     {
         sock.SendBufferSize = buffSize;
@@ -198,45 +199,36 @@ public class Client
     }
     public void write(byte[] data)
     {
+
         byte[] packet;
         // sort the connections array by the data amount property
-        Array.Sort(connections,
-delegate (SockConnection x, SockConnection y) { return x.dataAmount.CompareTo(y.dataAmount); });
 
+        connections = connections.OrderBy(c => c.dataAmount).ToArray();
 
-        // if the length of the data is greater than the buffersize
+        // if the length of the data is greater than the bufferSize
         // then split the data into multiple packets
         // otherwise send the data in one packet
-
-        //Console.WriteLine("received from client: " + BitConverter.ToString(data).Replace("-", ""));
-
-        if (data.Length > (buffSize-5))
+        if (data.Length > (buffSize - 5))
         {
-            byte[] packetLength = BitConverter.GetBytes((UInt16)(buffSize - 5));
-            byte[] packetId = BitConverter.GetBytes(sendPacketId);
-            packet = new byte[(buffSize-1)];
-            Array.Copy(packetLength, 0, packet, 0, 2);
-            Array.Copy(packetId, 0, packet, 2, 2);
+            packet = new byte[(buffSize - 1)];
+            Array.Copy(BitConverter.GetBytes((UInt16)(buffSize - 5)), 0, packet, 0, 2);
+            Array.Copy(BitConverter.GetBytes(sendPacketId), 0, packet, 2, 2);
             Array.Copy(data, 0, packet, 4, (buffSize - 5));
             connections[0].send(packet);
             sendPacketId++;
             write(data.Skip((buffSize - 5)).ToArray());
-
-            //Console.WriteLine("sent to server: " + BitConverter.ToString(data).Replace("-", ""));
         }
         else
         {
-            byte[] packetLength = BitConverter.GetBytes((UInt16)data.Length);
-            byte[] packetId = BitConverter.GetBytes(sendPacketId);
             packet = new byte[data.Length + 4];
-            Array.Copy(packetLength, 0, packet, 0, 2);
-            Array.Copy(packetId, 0, packet, 2, 2);
+            Array.Copy(BitConverter.GetBytes((UInt16)data.Length), 0, packet, 0, 2);
+            Array.Copy(BitConverter.GetBytes(sendPacketId), 0, packet, 2, 2);
             Array.Copy(data, 0, packet, 4, data.Length);
             connections[0].send(packet);
             sendPacketId++;
 
-            //Console.WriteLine("sent to server: " + BitConverter.ToString(data).Replace("-", ""));
         }
+
 
     }
 

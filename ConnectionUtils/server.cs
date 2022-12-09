@@ -34,7 +34,7 @@ public class Server
                 if (command[0] == 'i' && command[1] == 'd')
                 {
                     int proxyAmount = BitConverter.ToUInt16(Utils.readExact(clientSock, 2), 0);
-                    clients[clientId] = new ClientConnection(clientId, proxyAmount);
+                    clients[clientId] = new ClientConnection(proxyAmount);
                     clientSock.Send(BitConverter.GetBytes((UInt16)clientId));
                     clientId++;
 

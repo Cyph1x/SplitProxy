@@ -11,7 +11,7 @@ namespace connection_split_client
         static int buffSize = 65536;
         static string[] proxies;
         static string target;
-        static void hande(Socket conn)
+        static void handle(Socket conn)
         {
             Client client = new Client(target);
             try
@@ -152,7 +152,7 @@ namespace connection_split_client
             {
                 Socket sock = serverSock.Accept();
                 Console.WriteLine("New connection " + sock.RemoteEndPoint);
-                Thread t = new Thread(() => hande(sock));
+                Thread t = new Thread(() => handle(sock));
                 t.Start();
             }
 
