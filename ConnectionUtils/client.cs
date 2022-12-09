@@ -36,7 +36,7 @@ public class Client
         }
         // check if the server responded with 200 ok
         string response = System.Text.Encoding.Default.GetString(buffer);
-        if (response.StartsWith("HTTP/1.1 200 OK"))
+        if (response.StartsWith("HTTP/1.1 200") || response.StartsWith("HTTP/1.0 200"))
         {
             return sock;
         }
